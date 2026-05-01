@@ -1,0 +1,7 @@
+venv/
+tf_env/
+__pycache__/
+*.pyc
+.env
+backend/.env
+.env.example
