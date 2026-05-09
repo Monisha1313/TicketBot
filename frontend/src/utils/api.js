@@ -10,3 +10,6 @@ export const getBooking   = (ref) =>
 
 export const getExhibits  = () =>
   axios.get(`${BASE}/exhibits/`).then((r) => r.data);
+
+export const getMyBookings = (email) =>
+  axios.get(`${BASE}/bookings/my/${encodeURIComponent(email)}`).then((r) => r.data);

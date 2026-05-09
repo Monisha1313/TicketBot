@@ -1,53 +1,56 @@
 import { useState, useCallback } from "react";
 import { sendMessage } from "../utils/api";
+import { useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+const getIntro = (intent, user) => {
+  const name = user?.displayName?.split(" ")[0] || null;
+  const hi   = name ? `👋 Hi ${name}!` : "👋 Welcome!";
+
+  if (intent === "explore") return {
+    role: "assistant",
+    content: `${hi} I'm MuseBot, your museum guide.\n\nBefore we book anything — let's plan the perfect visit. What kind of exhibits do you enjoy? (history, science, art, nature, technology, kids)\n\nAnd roughly how much time do you have?`,
+  };
+  if (intent === "book") return {
+    role: "assistant",
+    content: `${hi} I'm MuseBot. Let's get your tickets sorted.\n\nAre you booking as an individual or for a group/school?`,
+  };
+  return {
+    role: "assistant",
+    content: `${hi} I'm MuseBot.\n\nI can help you book tickets, plan a personalised itinerary, or answer questions about our exhibits.\n\nShall we get started?`,
+  };
+};
 
 export function useChat() {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "👋 Welcome to the National Museum! I'm MuseBot.\n\nI can help you book tickets, plan a personalised itinerary, or answer any questions about our exhibits.\n\nShall we get started?",
-    },
-  ]);
+  const location = useLocation();
+  const { user } = useAuth();
+  const intent   = location.state?.intent || "default";
+
+  const [messages,      setMessages]      = useState([getIntro(intent, user)]);
   const [loading,       setLoading]       = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
 
-  const sendUserMessage = useCallback(
-    async (text) => {
-      const userMsg = { role: "user", content: text };
-      const updated = [...messages, userMsg];
-      setMessages(updated);
-      setLoading(true);
+  const sendUserMessage = useCallback(async (text) => {
+    const userMsg = { role: "user", content: text };
+    const updated = [...messages, userMsg];
+    setMessages(updated);
+    setLoading(true);
 
-      try {
-        const apiMessages = updated.map((m) => ({
-          role:    m.role,
-          content: m.content,
-        }));
-        const result = await sendMessage(apiMessages);
+    try {
+      const apiMessages = updated.map((m) => ({ role: m.role, content: m.content }));
+      const result = await sendMessage(apiMessages);
 
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: result.reply },
-        ]);
-
-        if (result.action === "booking_created") {
-          setBookingResult(result);
-        }
-      } catch {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "assistant",
-            content: "⚠️ Something went wrong. Please try again.",
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [messages]
-  );
+      setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
+      if (result.action === "booking_created") setBookingResult(result);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "⚠️ Something went wrong. Please try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }, [messages]);
 
   return { messages, loading, sendUserMessage, bookingResult };
 }
