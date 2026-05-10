@@ -6,13 +6,15 @@ chat_bp = Blueprint("chat", __name__)
 
 @chat_bp.route("/message", methods=["POST"])
 def message():
-    body     = request.json
-    messages = body.get("messages", [])
+    body       = request.json
+    messages   = body.get("messages", [])
+    user_name  = body.get("user_name")
+    user_email = body.get("user_email")
 
     if not messages:
         return jsonify({"error": "No messages provided"}), 400
 
-    result = chat(messages)
+    result = chat(messages, user_name=user_name, user_email=user_email)
 
     if result.get("action") == "create_booking" and result.get("data"):
         try:
@@ -24,9 +26,16 @@ def message():
                 "itinerary": booking_result["itinerary"],
                 "amount":    booking_result["amount"],
             })
+        except ValueError as e:
+            # Slot capacity error — return as a bot message
+            return jsonify({
+                "reply":  str(e),
+                "action": None,
+                "data":   None,
+            })
         except Exception as e:
             return jsonify({
-                "reply": result["reply"] + f"\n\n⚠️ Booking error: {str(e)}"
+                "reply": f"⚠️ Booking error: {str(e)}"
             }), 500
 
     return jsonify({

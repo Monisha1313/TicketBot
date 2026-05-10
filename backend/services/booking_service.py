@@ -23,7 +23,24 @@ def generate_qr(booking_ref: str) -> str:
     qr.save(path)
     return path
 
+from routes.bookings import get_slot_availability
+
 def create_booking(data: dict) -> dict:
+    # Check slot capacity before creating
+    visit_date = data["visit_date"]
+    visit_slot = data["visit_slot"]
+    num_tickets = int(data.get("num_tickets", 1))
+
+    avail = get_slot_availability(visit_date)
+    slot_info = avail.get(visit_slot, {})
+    if not slot_info.get("available") or slot_info.get("remaining", 0) < num_tickets:
+        raise ValueError(
+            f"Sorry, the {visit_slot} slot on {visit_date} only has "
+            f"{slot_info.get('remaining', 0)} spots left. Please choose another slot."
+        )
+
+    # ... rest of the function stays exactly the same
+
     ref         = generate_ref()
     booking_type = data.get("booking_type", "individual")
     num_tickets = int(data.get("num_tickets", 1))
