@@ -38,7 +38,7 @@ export function useChat() {
 
     try {
       const apiMessages = updated.map((m) => ({ role: m.role, content: m.content }));
-      const result = await sendMessage(apiMessages);
+      const result = await sendMessage(apiMessages, user); // pass user here
 
       setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
       if (result.action === "booking_created") setBookingResult(result);
@@ -50,7 +50,7 @@ export function useChat() {
     } finally {
       setLoading(false);
     }
-  }, [messages]);
+  }, [messages, user]);
 
   return { messages, loading, sendUserMessage, bookingResult };
 }
