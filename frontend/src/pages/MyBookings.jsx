@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { getMyBookings, cancelBooking, clearAllBookings } from "../utils/api";
 import ItineraryCard from "../components/ItineraryCard";
 import { CalendarDays, Clock, Ticket, ChevronDown, ChevronUp, Trash2, XCircle } from "lucide-react";
-
+import { getBookingsFromFirestore, cancelBookingInFirestore } from "../utils/firestore";
+import { cancelBooking } from "../utils/api"; // still needed for SQLite sync
 export default function MyBookings() {
   const { user }                = useAuth();
   const [bookings, setBookings] = useState([]);
@@ -12,30 +12,37 @@ export default function MyBookings() {
   const [confirm, setConfirm]   = useState(null); // ref of booking pending cancel
   const [clearing, setClearing] = useState(false);
 
-  const fetchBookings = () => {
-    if (!user?.email) return;
-    getMyBookings(user.email)
-      .then(setBookings)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+  const fetchBookings = async () => {
+   if (!user?.email) return;
+   try {
+     const data = await getBookingsFromFirestore(user.email);
+    // Sort by created_at descending
+     data.sort((a, b) => (b.created_at?.seconds || 0) - (a.created_at?.seconds || 0));
+     setBookings(data);
+   } catch (e) {
+     console.error(e);
+   } finally {
+     setLoading(false);
+   }
   };
 
   useEffect(() => { fetchBookings(); }, [user]);
 
   const handleCancel = async (ref) => {
-    try {
-      await cancelBooking(ref);
-      setBookings((prev) =>
-        prev.map((b) =>
-          b.booking_ref === ref ? { ...b, payment_status: "cancelled" } : b
-        )
-      );
-    } catch (e) {
-      alert("Could not cancel booking.");
-    } finally {
-      setConfirm(null);
-    }
-  };
+   try {
+    await cancelBooking(ref);                  // SQLite
+    await cancelBookingInFirestore(ref);        // Firestore
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.booking_ref === ref ? { ...b, payment_status: "cancelled" } : b
+      )
+    );
+   } catch {
+     alert("Could not cancel booking.");
+   }  finally {
+     setConfirm(null);
+   }
+};
 
   
 

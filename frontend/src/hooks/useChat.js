@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { sendMessage } from "../utils/api";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { saveBookingToFirestore } from "../utils/firestore";
 
 const getIntro = (intent, user) => {
   const name = user?.displayName?.split(" ")[0] || null;
@@ -38,10 +39,15 @@ export function useChat() {
 
     try {
       const apiMessages = updated.map((m) => ({ role: m.role, content: m.content }));
-      const result = await sendMessage(apiMessages, user); // pass user here
+      const result = await sendMessage(apiMessages, user);
 
       setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
-      if (result.action === "booking_created") setBookingResult(result);
+
+      if (result.action === "booking_created") {
+        setBookingResult(result);
+        // Save to Firestore
+        await saveBookingToFirestore(result.booking, result.itinerary, user);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,

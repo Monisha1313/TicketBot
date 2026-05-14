@@ -7,6 +7,7 @@ import Login              from "./pages/Login";
 import Chat               from "./pages/Chat";
 import Confirmation       from "./pages/Confirmation";
 import MyBookings from "./pages/MyBookings";
+import Exhibits from "./pages/Exhibits";
 export default function App() {
   return (
     <AuthProvider>
@@ -24,6 +25,9 @@ export default function App() {
         } />
         <Route path="/my-bookings" element={
   <ProtectedRoute><MyBookings /></ProtectedRoute>
+        } />
+        <Route path="/exhibits" element={
+          <ProtectedRoute><Exhibits /></ProtectedRoute>
         } />
       </Routes>
     </AuthProvider>

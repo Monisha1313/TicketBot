@@ -8,13 +8,11 @@ export function useVoice(onResult) {
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
-
     setSupported(true);
     const rec = new SR();
     rec.continuous     = false;
     rec.interimResults = false;
     rec.lang           = "en-IN";
-
     rec.onresult = (e) => {
       onResult(e.results[0][0].transcript);
       setListening(false);
@@ -26,23 +24,21 @@ export function useVoice(onResult) {
 
   const toggle = () => {
     if (!recRef.current) return;
-    if (listening) {
-      recRef.current.stop();
-      setListening(false);
-    } else {
-      recRef.current.start();
-      setListening(true);
-    }
+    if (listening) { recRef.current.stop(); setListening(false); }
+    else           { recRef.current.start(); setListening(true); }
   };
+
+  // Stop speaking immediately
+  const stopSpeaking = () => window.speechSynthesis?.cancel();
 
   const speak = (text) => {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // stop any current speech first
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "en-IN";
     u.rate = 1.0;
     window.speechSynthesis.speak(u);
   };
 
-  return { listening, supported, toggle, speak };
+  return { listening, supported, toggle, speak, stopSpeaking };
 }
